@@ -3,13 +3,15 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <thread>
 #include <vector>
 
 static struct clip_ctx * ctx;
 const int verbosity = 1;
-const int n_threads = 4;
+static int n_threads = 1;
 static int vec_dim;
 void init(rust::String model_path) {
+    n_threads = std::thread::hardware_concurrency();
     // char * model_path = "/home/foxmoss/Downloads/clip-vit-large-patch14_ggml-model-q8_0.gguf";
 
     ctx = clip_model_load(model_path.data(), verbosity);
