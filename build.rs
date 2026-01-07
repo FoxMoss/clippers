@@ -1,5 +1,5 @@
 fn main() {
-    cxx_build::bridge("src/main.rs")
+    cxx_build::bridge("src/lib.rs")
         .file("clip.cpp")
         .file("rust_interface.cpp")
         .flag("-Wno-ignored-qualifiers")
