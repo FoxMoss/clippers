@@ -8,12 +8,16 @@ fn main() {
         .flag("-mavx")
         .flag("-mavx2")
         .flag("-mfma")
+        .flag("-O3")
         .compile("clipcpp");
 
     cc::Build::new()
         .file("ggml/src/ggml.c")
         .flag("-std=c11")
         .flag("-Wno-unused-variable")
+        // .flag("-DGGML_USE_ACCELERATE")
+        // .flag("-DGGML_USE_CLBLAST")
+        .flag("-O3")
         .define("_GNU_SOURCE", None) 
         .define("_POSIX_C_SOURCE", "200809L")  
         .compile("ggml");
