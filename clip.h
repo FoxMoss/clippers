@@ -1,9 +1,8 @@
 #ifndef CLIP_H
 #define CLIP_H
 
-#include "ggml/ggml.h"
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 struct clip_ctx;
 

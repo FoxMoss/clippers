@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "clip.h"
-#include "ggml/ggml.h"
+#include "cliprust/ggml/include/ggml/ggml.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -682,26 +682,26 @@ clip_image_u8 * clip_image_u8_make() { return new clip_image_u8(); }
 
 clip_image_f32 * clip_image_f32_make() { return new clip_image_f32(); }
 
-void clip_image_u8_clean(clip_image_u8* img) {
-    if (img->data){
-	delete[] img->data;
-	img->data = NULL;
+void clip_image_u8_clean(clip_image_u8 * img) {
+    if (img->data) {
+        delete[] img->data;
+        img->data = NULL;
     }
 }
 
-void clip_image_f32_clean(clip_image_f32* res) {
-    if (res->data){
-	delete[] res->data;
-	res->data = NULL;
+void clip_image_f32_clean(clip_image_f32 * res) {
+    if (res->data) {
+        delete[] res->data;
+        res->data = NULL;
     }
 }
 
-void clip_image_u8_free(clip_image_u8* img) {
+void clip_image_u8_free(clip_image_u8 * img) {
     clip_image_u8_clean(img);
     delete img;
 }
 
-void clip_image_f32_free(clip_image_f32* res) {
+void clip_image_f32_free(clip_image_f32 * res) {
     clip_image_f32_clean(res);
     delete res;
 }
@@ -936,8 +936,8 @@ typedef struct {
 // Structure to hold the range of images to be processed by a thread
 // closed interval
 typedef struct {
-    ImageData* start;
-    ImageData* end;
+    ImageData * start;
+    ImageData * end;
 } ImageDataRange;
 
 // Function to preprocess a single image in a thread
@@ -949,13 +949,13 @@ void * preprocess_image(void * arg) {
 
     for (ImageData * imageData = imageData_start; imageData <= imageData_end; imageData++) {
         const clip_image_u8 * input = imageData->input;
-        clip_image_f32 * resized = imageData->resized; 
+        clip_image_f32 * resized = imageData->resized;
         const clip_ctx * ctx = imageData->ctx;
 
         // Call the original preprocess function on the image
-        clip_image_preprocess(ctx, input, resized); 
+        clip_image_preprocess(ctx, input, resized);
     }
-    
+
     pthread_exit(NULL);
 }
 
@@ -980,8 +980,8 @@ void clip_image_batch_preprocess(const clip_ctx * ctx, const int n_threads, cons
 
         std::vector<pthread_t> threads(num_threads);
         std::vector<ImageData> imageData(img_inputs->size);
-        ImageDataRange* imageDataRange = new ImageDataRange[num_threads]();
-        
+        ImageDataRange * imageDataRange = new ImageDataRange[num_threads]();
+
         for (t = 0; t < num_threads; t++) {
             int start_index = t * images_per_thread;
             int end_index = (t == num_threads - 1) ? img_inputs->size : start_index + images_per_thread;
