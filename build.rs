@@ -7,12 +7,10 @@ fn has_cuda() -> bool {
     #[cfg(target_os = "linux")]
     let lib_name = "libcuda.so.1";
 
-    unsafe { Library::new(lib_name).is_ok() };
+    unsafe { Library::new(lib_name).is_ok() }
 }
 
 fn main() {
-
-
     cxx_build::bridge("src/lib.rs")
         .file("clip.cpp")
         .file("rust_interface.cpp")
@@ -27,11 +25,10 @@ fn main() {
         .flag("-mfma")
         .flag("-mf16c")
         .flag("-O3")
-
         .compile("clipcpp");
-    
+
     let mut ggml = cc::Build::new();
-        ggml.file("ggml/src/ggml.c")
+    ggml.file("ggml/src/ggml.c")
         .flag("-std=c11")
         .flag("-Wno-unused-variable")
         .flag("-mavx")
@@ -43,14 +40,15 @@ fn main() {
         .flag("-mf16c")
         .flag("-O3")
         .flag("-DGGML_USE_OPENBLAS")
-        .define("_GNU_SOURCE", None) 
-        .define("_POSIX_C_SOURCE", "200809L")  ;
+        .define("_GNU_SOURCE", None)
+        .define("_POSIX_C_SOURCE", "200809L");
 
-        if(has_cuda()){
-            ggml.flag("-DGGML_USE_CUBLAS").file("ggml-cuda.cu")
-        }
+    if has_cuda() {
+        ggml.flag("-DGGML_USE_CUBLAS").file("ggml-cuda.cu");
+        println!("CUDA support available");
+    }
 
-        ggml.compile("ggml");
+    ggml.compile("ggml");
 
     println!("cargo:rerun-if-changed=clip.cpp");
     println!("cargo:rerun-if-changed=rust_interface.cpp");

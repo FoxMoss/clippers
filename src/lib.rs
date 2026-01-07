@@ -1,4 +1,4 @@
-use crate::ffi::{init, end, embed_text, embed_image, embed_compare};
+use crate::ffi::{embed_compare, embed_image, embed_text, end, init};
 
 #[cxx::bridge]
 mod ffi {
@@ -22,26 +22,24 @@ pub fn rust_end() {
     end();
 }
 
-pub fn rust_embed_text(text: String) -> Option<Vec<f32>>{
+pub fn rust_embed_text(text: String) -> Option<Vec<f32>> {
     let vec = embed_text(text);
 
-    if vec.len() == 0{
+    if vec.len() == 0 {
         return None;
     }
     return Some(vec);
 }
 
-pub fn rust_embed_compare(p1: &Vec<f32>, p2: &Vec<f32>) -> f32{
+pub fn rust_embed_compare(p1: &Vec<f32>, p2: &Vec<f32>) -> f32 {
     embed_compare(p1, p2)
 }
 
-pub fn rust_embed_image(path: String) -> Option<Vec<f32>>{
+pub fn rust_embed_image(path: String) -> Option<Vec<f32>> {
     let vec = embed_image(path);
 
-    if vec.len() == 0{
+    if vec.len() == 0 {
         return None;
     }
     return Some(vec);
 }
-
-
