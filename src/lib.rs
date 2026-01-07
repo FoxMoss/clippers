@@ -40,13 +40,3 @@ pub fn rust_embed_image(path: String) -> Option<Vec<f32>>{
 }
 
 
-// fn main(){
-//     rust_init();
-//
-//     let text_embbedding = rust_embed_text("a tall man".to_string());
-//     let image_embbedding = rust_embed_image("/home/foxmoss/Downloads/tallman.jpg".to_string());
-//     print!("{:?}", text_embbedding);
-//     print!("{:?}", image_embbedding);
-//
-//     rust_end();
-// }
