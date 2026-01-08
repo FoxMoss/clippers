@@ -1,4 +1,4 @@
-use crate::ffi::{init, end, embed_text, embed_image, embed_compare};
+use crate::ffi::{embed_compare, embed_image, embed_text, end, init};
 
 #[cxx::bridge]
 mod ffi {
@@ -25,7 +25,7 @@ pub fn cliprs_end() {
 pub fn cliprs_embed_text(text: String) -> Option<Vec<f32>>{
     let vec = embed_text(text);
 
-    if vec.len() == 0{
+    if vec.len() == 0 {
         return None;
     }
     return Some(vec);
@@ -38,10 +38,8 @@ pub fn cliprs_embed_compare(p1: &Vec<f32>, p2: &Vec<f32>) -> f32{
 pub fn cliprs_embed_image(path: String) -> Option<Vec<f32>>{
     let vec = embed_image(path);
 
-    if vec.len() == 0{
+    if vec.len() == 0 {
         return None;
     }
     return Some(vec);
 }
-
-
