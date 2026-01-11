@@ -3,6 +3,7 @@ use crate::ffi::{embed_compare, embed_image, embed_text, end, init};
 use std::sync::Mutex;
 
 static WARNINGS: Mutex<Vec<String>> = Mutex::new(Vec::new());
+static PRINT_FOREVER: Mutex<bool> = Mutex::new(false);
 
 #[cxx::bridge]
 mod ffi {
@@ -22,14 +23,17 @@ mod ffi {
     }
 }
 
+/// Initializes Cliprs with a model_path. This can only be called once per program.
 pub fn cliprs_init(model_path: &str) {
     init(model_path.to_string());
 }
 
+/// This clears the loaded model from memory.
 pub fn cliprs_end() {
     end();
 }
 
+/// Allows you to compare two embeddings.
 pub fn cliprs_embed_compare(p1: &Vec<f32>, p2: &Vec<f32>) -> f32{
     embed_compare(p1, p2)
 }
@@ -61,12 +65,35 @@ pub fn cliprs_embed_image(path: impl Into<String>) -> Result<Vec<f32>, String> {
 
 fn log_warning(message: String) {
     if let Ok(mut warnings) = WARNINGS.lock() {
-        warnings.push(message);
+        warnings.push(message.clone());
+    }
+
+    if let Ok(forever) = PRINT_FOREVER.lock() {
+        if *forever == true {
+            println!("{}", message);
+        }
     }
 }
 
+/// Returns a Vec<String> of all new warning messages since the last call.
 pub fn poll_warnings() -> Vec<String> {
     WARNINGS.lock()
         .map(|mut w| w.drain(..).collect())
         .unwrap_or_default()
+}
+
+/// Prints all pending warnings.
+pub fn print_warnings() {
+    if let Ok(warnings) = WARNINGS.lock() {
+        for warning in warnings.iter() {
+            println!("{}", warning);
+        }
+    }
+}
+
+/// When called once, this function will make all warning message be printed to the console automatically.
+pub fn print_warnings_forever() {
+    if let Ok(mut forever) = PRINT_FOREVER.lock() {
+        *forever = true;
+    }
 }
