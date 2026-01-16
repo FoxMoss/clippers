@@ -1,9 +1,6 @@
-use crate::ffi::{embed_compare, embed_image, embed_text, end, init};
-
 use std::sync::Mutex;
 
 static WARNINGS: Mutex<Vec<String>> = Mutex::new(Vec::new());
-static PRINT_FOREVER: Mutex<bool> = Mutex::new(false);
 
 #[cxx::bridge]
 mod ffi {
@@ -15,85 +12,81 @@ mod ffi {
         include!("cliprs/clip.h");
         include!("cliprs/rust_interface.h");
 
-        fn init(path: String);
-        fn embed_text(text: String) -> Result<Vec<f32>>;
-        fn embed_image(path: String) -> Result<Vec<f32>>;
-        fn embed_compare(p1: &Vec<f32>, p2: &Vec<f32>) -> f32;
-        fn end();
+        type clip_ctx;
+
+        fn init(path: String) -> *mut clip_ctx;
+        unsafe fn embed_text(ctx: *const clip_ctx, text: String) -> Result<Vec<f32>>;
+        unsafe fn embed_image(ctx: *const clip_ctx, path: String) -> Result<Vec<f32>>;
+        unsafe fn embed_compare(ctx: *const clip_ctx, p1: &Vec<f32>, p2: &Vec<f32>) -> f32;
+        unsafe fn end(ctx: *mut clip_ctx);
     }
 }
 
-/// Initializes Cliprs with a model_path. This can only be called once per program.
-pub fn cliprs_init(model_path: &str) {
-    init(model_path.to_string());
-}
-
-/// This clears the loaded model from memory.
-pub fn cliprs_end() {
-    end();
-}
-
-/// Allows you to compare two embeddings.
-pub fn cliprs_embed_compare(p1: &Vec<f32>, p2: &Vec<f32>) -> f32{
-    embed_compare(p1, p2)
-}
-
-/// Embeds text. Will return Err(e) if it fails. Non-fatal warnings are accesible using `poll_warnings()`
-pub fn cliprs_embed_text(text: impl Into<String>) -> Result<Vec<f32>, String> {
-    match embed_text(text.into()) {
-        Ok(embed) => if embed.is_empty() {
-            Err("Text embedding is empty".to_string())
-        } else {
-            Ok(embed)
-        },
-        Err(e) => Err(e.to_string())
-    }
-}
-
-/// Embeds am image from a path. Will return Err(e) if it fails. Non-fatal warnings are accesible using `poll_warnings()`
-pub fn cliprs_embed_image(path: impl Into<String>) -> Result<Vec<f32>, String> {
-    let path: String = path.into();
-    match embed_image(path.clone()) {
-        Ok(embed) => if embed.is_empty() {
-            Err(format!("Embedding for {} is empty", path))
-        } else {
-            Ok(embed)
-        },
-        Err(e) => Err(e.to_string())
-    }
-}
-
-fn log_warning(message: String) {
+pub fn log_warning(message: String) {
     if let Ok(mut warnings) = WARNINGS.lock() {
-        warnings.push(message.clone());
+        warnings.push(message);
     }
+}
 
-    if let Ok(forever) = PRINT_FOREVER.lock() {
-        if *forever == true {
-            println!("{}", message);
+pub struct ClipModel {
+    ctx: *mut ffi::clip_ctx,
+}
+
+// Required for Send/Sync since we're using raw pointers
+unsafe impl Send for ClipModel {}
+unsafe impl Sync for ClipModel {}
+
+impl ClipModel {
+    /// Initializes ClipModel with a model path.
+    /// 
+    /// # Example
+    /// 
+    /// ```rust
+    /// model = ClipModel::new("path/to/model.gguf")
+    /// ```
+    pub fn new(model_path: impl Into<String>) -> Self {
+        Self {
+            ctx: ffi::init(model_path.into()),
         }
     }
-}
 
-/// Returns a Vec<String> of all new warning messages since the last call.
-pub fn poll_warnings() -> Vec<String> {
-    WARNINGS.lock()
-        .map(|mut w| w.drain(..).collect())
-        .unwrap_or_default()
-}
+    /// Allows you to compare two embeddings.
+    pub fn embed_compare(&self, p1: &Vec<f32>, p2: &Vec<f32>) -> f32 {
+        unsafe { ffi::embed_compare(self.ctx, p1, p2) }
+    }
 
-/// Prints all pending warnings.
-pub fn print_warnings() {
-    if let Ok(warnings) = WARNINGS.lock() {
-        for warning in warnings.iter() {
-            println!("{}", warning);
+    /// Embeds text.
+    pub fn embed_text(&self, text: impl Into<String>) -> Result<Vec<f32>, String> {
+        match unsafe { ffi::embed_text(self.ctx, text.into()) } {
+            Ok(embed) if embed.is_empty() => Err("Text embedding is empty".to_string()),
+            Ok(embed) => Ok(embed),
+            Err(e) => Err(e.to_string()),
         }
+    }
+
+    /// Embeds an image from a path.
+    pub fn embed_image(&self, path: impl Into<String>) -> Result<Vec<f32>, String> {
+        let path: String = path.into();
+        match unsafe { ffi::embed_image(self.ctx, path.clone()) } {
+            Ok(embed) if embed.is_empty() => Err(format!("Embedding for {} is empty", path)),
+            Ok(embed) => Ok(embed),
+            Err(e) => Err(e.to_string()),
+        }
+    }
+
+    /// Returns all new warning messages since the last call.
+    pub fn poll_warnings(&self) -> Vec<String> {
+        WARNINGS
+            .lock()
+            .map(|mut w| w.drain(..).collect())
+            .unwrap_or_default()
     }
 }
 
-/// When called once, this function will make all warning message be printed to the console automatically.
-pub fn print_warnings_forever() {
-    if let Ok(mut forever) = PRINT_FOREVER.lock() {
-        *forever = true;
+impl Drop for ClipModel {
+    fn drop(&mut self) {
+        unsafe {
+            ffi::end(self.ctx);
+        }
     }
 }

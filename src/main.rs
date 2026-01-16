@@ -1,16 +1,16 @@
-use cliprs::{cliprs_embed_compare, cliprs_embed_image, cliprs_embed_text, cliprs_end, cliprs_init};
+use cliprs::ClipModel;
 
 fn main() {
-    cliprs_init("/home/foxmoss/Downloads/clip-vit-large-patch14_ggml-model-q8_0.gguf");
+    let model = ClipModel::new("/home/simon/Dokumente/Rust/findimg/clip-vit-large-patch14_ggml-model-q8_0.gguf");
 
-    let text_embbedding = cliprs_embed_text("a tall man".to_string()).unwrap();
-    print!("{:?}\n", text_embbedding);
-    let image_embbedding =
-        cliprs_embed_image("/home/foxmoss/Downloads/tallman.jpg".to_string()).unwrap();
-    print!("{:?}\n", image_embbedding);
+    let text_embedding = model.embed_text("party").unwrap();
 
-    let score = cliprs_embed_compare(&text_embbedding, &image_embbedding);
-    println!("score {}", score);
+    let image_embedding = model.embed_image("/home/simon/Downloads/party.jpg").unwrap();
 
-    cliprs_end();
+    let similarity = model.embed_compare(&text_embedding, &image_embedding);
+    println!("Similarity: {}", similarity);
+
+    for warning in model.poll_warnings() {
+        eprintln!("Warning: {}", warning);
+    }
 }

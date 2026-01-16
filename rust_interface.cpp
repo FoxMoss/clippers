@@ -1,5 +1,7 @@
 #include "clip.h"
 #include <cstdint>
+#include <functional>
+#include <map>
 #include <optional>
 #include <string>
 #include <stdexcept>
@@ -14,24 +16,26 @@ extern "C" void clip_log_warning(const char* message) {
     log_warning(rust::String(message));
 }
 
-static struct clip_ctx * ctx;
 const int verbosity = 1;
 static int n_threads = 1;
-static int vec_dim;
-void init(rust::String model_path) {
+static std::map<uintptr_t, int> vec_dims;
+
+struct clip_ctx * init(rust::String model_path) {
     n_threads = std::thread::hardware_concurrency();
     // char * model_path = "/home/foxmoss/Downloads/clip-vit-large-patch14_ggml-model-q8_0.gguf";
 
-    ctx = clip_model_load(model_path.data(), verbosity);
-    vec_dim = clip_get_vision_hparams(ctx)->projection_dim;
+    struct clip_ctx * ctx = clip_model_load(model_path.data(), verbosity);
+    int vec_dim = clip_get_vision_hparams(ctx)->projection_dim;
+    vec_dims[reinterpret_cast<uintptr_t>(ctx)] = vec_dim;
+    return ctx;
 }
 
-rust::vec<float> embed_text(rust::String text) {
+rust::vec<float> embed_text(const struct clip_ctx * ctx,rust::String text) {
     struct clip_tokens tokens;
     clip_tokenize(ctx, text.c_str(), &tokens);
 
     std::vector<float> txt_vec;
-    txt_vec.insert(txt_vec.end(), vec_dim, 0);
+    txt_vec.insert(txt_vec.end(), vec_dims[reinterpret_cast<uintptr_t>(ctx)], 0);
 
     if (!clip_text_encode(ctx, n_threads, &tokens, txt_vec.data(), true)) {
         throw std::runtime_error(std::string(__func__) + "Failed to encode text");
@@ -43,7 +47,7 @@ rust::vec<float> embed_text(rust::String text) {
     return ret;
 }
 
-rust::vec<float> embed_image(rust::String path) {
+rust::vec<float> embed_image(const struct clip_ctx * ctx, rust::String path) {
     std::string path_str(path);
 
     struct clip_image_u8 * img0 = clip_image_u8_make();
@@ -57,7 +61,7 @@ rust::vec<float> embed_image(rust::String path) {
     }
 
     std::vector<float> img_vec;
-    img_vec.insert(img_vec.end(), vec_dim, 0);
+    img_vec.insert(img_vec.end(), vec_dims[reinterpret_cast<uintptr_t>(ctx)], 0);
     if (!clip_image_encode(ctx, n_threads, img_res, img_vec.data(), true)) {
         throw std::runtime_error(std::string(__func__) + ": Failed to encode " + path_str);
     }
@@ -67,8 +71,8 @@ rust::vec<float> embed_image(rust::String path) {
     return ret;
 }
 
-float embed_compare(const rust::vec<float> & p1, const rust::vec<float> & p2) {
-    return clip_similarity_score(p1.data(), p2.data(), vec_dim);
+float embed_compare(const struct clip_ctx * ctx, const rust::vec<float> & p1, const rust::vec<float> & p2) {
+    return clip_similarity_score(p1.data(), p2.data(), vec_dims[reinterpret_cast<uintptr_t>(ctx)]);
 }
 
-void end() { clip_free(ctx); }
+void end(struct clip_ctx * ctx) { clip_free(ctx); }
