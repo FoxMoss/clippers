@@ -1,7 +1,9 @@
 use std::sync::Mutex;
 
 static WARNINGS: Mutex<Vec<String>> = Mutex::new(Vec::new());
-const SUPPORTED_IMAGE_FORMATS: [&str; 10] = ["jpg", "jpeg", "png", "tga", "bmp", "psd"," gif", "hdr", "pic", "ppm"];
+const SUPPORTED_IMAGE_FORMATS: [&str; 10] = [
+    "jpg", "jpeg", "png", "tga", "bmp", "psd", " gif", "hdr", "pic", "ppm",
+];
 
 #[cxx::bridge]
 mod ffi {
@@ -32,17 +34,17 @@ pub fn log_warning(message: String) {
 }
 
 /// Represents a CLIP model loaded from a GGUF file.
-/// 
+///
 /// # Example
 /// ```no_run
 /// let model = cliprs::ClipModel::new("path/to/model.gguf");
-/// 
+///
 /// let text_embedding = model.embed_text("A sample text").unwrap();
-/// 
+///
 /// let image_embedding = model.embed_image("path/to/image.png").unwrap();
-/// 
+///
 /// let similarity = model.embed_compare(&text_embedding, &image_embedding);
-/// 
+///
 /// println!("Similarity: {}", similarity);
 /// ```
 pub struct ClipModel {
@@ -55,9 +57,9 @@ unsafe impl Sync for ClipModel {}
 
 impl ClipModel {
     /// Initializes ClipModel with a model path.
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```no_run
     /// let model = cliprs::ClipModel::new("path/to/model.gguf");
     /// ```
@@ -68,9 +70,9 @@ impl ClipModel {
     }
 
     /// Compares two embeddings and returns the similarity.
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```no_run
     /// let similarity = model.embed_compare(&text_embedding, &image_embedding);
     /// ```
@@ -79,9 +81,9 @@ impl ClipModel {
     }
 
     /// Creates an embedding for a string
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```no_run
     /// let text_embedding = model.embed_text("blue car");
     /// ```
@@ -94,17 +96,23 @@ impl ClipModel {
     }
 
     /// Creates an image embedding from a path
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```no_run
     /// let image_embedding = model.embed_image("path/to/image.jpg")
     /// ```
     pub fn embed_image(&self, path: impl Into<String>) -> Result<Vec<f32>, String> {
         let path: String = path.into();
 
-        if !SUPPORTED_IMAGE_FORMATS.iter().any(|suffix| path.ends_with(suffix)) {
-            return Err(format!("Unsupported image format: {}", path.split('.').last().unwrap_or_default()));
+        if !SUPPORTED_IMAGE_FORMATS
+            .iter()
+            .any(|suffix| path.ends_with(suffix.trim()))
+        {
+            return Err(format!(
+                "Unsupported image format: {}",
+                path.split('.').last().unwrap_or_default()
+            ));
         }
 
         match unsafe { ffi::embed_image(self.ctx, path.clone()) } {
@@ -124,9 +132,9 @@ impl Drop for ClipModel {
 }
 
 /// Returns all warnings emitted by all Clip instances since the last call
-/// 
+///
 /// # Example
-/// 
+///
 /// ```
 /// let warnings = cliprs::poll_warnings();
 /// println!("{:?}", warnings);

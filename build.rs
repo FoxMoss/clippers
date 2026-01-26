@@ -20,7 +20,7 @@ fn main() {
         .flag("-Wno-ignored-qualifiers")
         .flag("-Wno-sign-compare")
         .flag("-Wno-unused-variable")
-        .flag("-march=native")  
+        .flag("-march=native")
         .flag("-mavx")
         .flag("-mavx2")
         .flag("-mfma")
@@ -29,7 +29,7 @@ fn main() {
         .flag("-ffast-math")
         .flag("-funroll-loops")
         .compile("clipcpp");
-    
+
     let mut ggml = cc::Build::new();
     ggml.file("ggml/src/ggml.c")
         .flag("-std=c11")

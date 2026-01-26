@@ -18,23 +18,27 @@ cargo add cliprs
 
 ## Usage
 
-Check [simon0302010/findimg/](https://github.com/simon0302010/findimg/) for a more detailed
-example.
+For a detailed example, see [`src/main.rs`](./src/main.rs).
 
 But basic usage looks like
 ```rust
 use cliprs::ClipModel;
 
 fn main() {
-    let model = ClipModel::new("/home/simon/Dokumente/Rust/findimg/clip-vit-large-patch14_ggml-model-q8_0.gguf");
+    // Loading model
+    let model = ClipModel::new("/path/to/model.gguf");
 
-    let text_embedding = model.embed_text("party").unwrap();
+    // Embedding text
+    let text_embedding = model.embed_text("text").unwrap();
 
-    let image_embedding = model.embed_image("/home/simon/Downloads/party.jpg").unwrap();
+    // Embedding an image
+    let image_embedding = model.embed_image("/path/to/image.jpg").unwrap();
 
+    // Comparing image and text. You can also compare embeddings of the same type.
     let similarity = model.embed_compare(&text_embedding, &image_embedding);
     println!("Similarity: {}", similarity);
 
+    // Prints all warnings during processing
     for warning in cliprs::poll_warnings() {
         eprintln!("Warning: {}", warning);
     }
